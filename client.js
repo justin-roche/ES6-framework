@@ -1,20 +1,19 @@
  //no need for IIFE, let vars inside block are local
 {
 
-	/*The general principle is to be a hierarchical model-adapter-view framework
+	/*The goal is to be a hierarchical model-adapter-view framework
 	control is downward-directed, via named event functions on the controller
 	the default scope for these events for child controllers is full access
 
 	initialization is explicit and of the order Model -> Controller -> View
 
-	each next component in this chain receives the previous as an argument
-	it then calls the register method on that component, which registers it for the first component*/
+	each next component in this chain receives the previous as an argument*/
 
 	let m = new esf.Model({
 
 	});
 
-	//M, V, and C are classes configured with configuration objects 
+	//M, V, and C are classes with instances configured with configuration objects 
 
 	let c = new esf.Controller({
 		model: m,
@@ -23,11 +22,14 @@
 
 			refresh(){
 				console.log('refresh');
+
+				//HTTP request calls a mock-up of a server using promises
 				esf.HTTPRequest({type: 'GET'}).then((d)=>{
 					this.model.$fill(d);	//$prefix means it initiates a propagating model change
-
+											//this is a non-optimistic view update, called after the server call
+											//fill is a complete model update that results in complete view refresh
 				});
-				//HTTP request calls a mock-up of a server using promises
+				
 			},
 
 			select(model){
@@ -37,17 +39,21 @@
 
 			add(){
 				console.log('add');
-				esf.HTTPRequest({type: 'POST', message: $('input').val()}).then((d)=>{
-						this.model.$fill(d);						
+				let message = $('input').val(); 
+				esf.HTTPRequest({type: 'POST', message: message}).then((d)=>{
+		
 				}); 
+				//delete and add are partial updates, they propagate a "difference" which does not result in full view refreshes
+				this.model.$add({message: message});
 			},
 
-			remove(data){
-				let t = this.model.getCursor();
-				if(t!==false){						//STRICT INEQUALITY IS A THING
-					esf.HTTPRequest({type: 'DELETE', id: t}).then((d)=>{
-						this.model.$fill(d);						
+			remove(){
+				let m = this.model.getCursor();
+				if(m!==false){						
+					esf.HTTPRequest({type: 'DELETE', id: m._id}).then((d)=>{
+											
 					}); 
+					this.model.$delete(m);	
 				}
 				
 			},
@@ -60,20 +66,20 @@
 
 		controller: c,
 		
-		parentElement: '#todos',			//parent element is as a string
+		parentElement: '#todos',			//parent element as a string
 
 		template: function(){return `<ul class="list-group">new list group</ul>`},
 
 	});
 
-	c.setRepeat({			//repeat configures the compilation phase of a repeater,which adds new controllers
+	c.setRepeat({							//repeat configures the compilation phase of a repeater, which adds new controllers, such as for li elements
 
 			model:  {},
 
 			controller:  {
 				
 				events: {
-					//_ for shadowed parentEvents
+					//_ suffice used for shadowed parentEvents
 					select_: function(){
 						this.parentController.events.select(this.model.data);
 						this.view.$el.toggleClass('active');
@@ -84,7 +90,7 @@
 	
 			view:  {
 
-				template: function(){return `<li class="list-group-item"><p>${this.state.message}</p></li>`}, //cannot create dynamic template literal
+				template: function(){return `<li class="list-group-item"><p>${this.state.message}</p></li>`}, 
 
 				controllerEvents: {
 					select_: [],		//no selector arg means select this.$el

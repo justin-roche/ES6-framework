@@ -25,15 +25,15 @@
 		}
 
 		attachListeners($el){
-			let c = this.controller.events || this.controller.parentController.events; 
+			let c = this.controller.events || this.controller.parentController.events; //should be a while loop
 			let d = this.controllerEvents; 
 
 			for(let event in d){
-				let type = d[event][1] || 'click'; //<-default matches for different elements
+				let type = d[event][1] || 'click'; //should implement default matches for different elements
 				let selector = d[event][0];
 				let handler = c[event];
 
-				if(!selector){				//no selector
+				if(!selector){				
 					let $target = $el;
 					$target.on(type,handler);
 				}
@@ -48,21 +48,26 @@
 			this.render();
 		}
 
+		clear(){
+			this.$el.empty();	//will empty repeated elements;
+			this.$el.remove();	//memory leaks on attached listening child controllers?
+			this.$el = {};
+		}
+
 		render(){
-			if(this.$el) {
-				this.$el.empty();	//will empty repeated elements;
-				this.$el.remove();	//memory leaks on attached listening child controllers?
-				this.$el = {};
-			} else {
-				this.$el = {};
-			}
-			
+			if(!this.$el) this.$el = {};
 			this.$el = $(this.template.call(this));
 			if(this.$el.length > 1){
 				throw new Error('elements of views can only be one element')
 			}
 			this.$parentElement.append(this.$el);
 			this.attachListeners(this.$el);
+		}
+
+		remove(){
+				this.$el.empty();	
+				this.$el.remove();	
+				this.$el = {};
 		}
 
 	}
